@@ -129,7 +129,19 @@ main{
 .bars i:nth-child(3){animation-delay:-.6s}
 @keyframes eq{to{height:100%}}
 
-.spotify{display:block;width:min(100%, 360px);height:80px;border:0;border-radius:14px;box-shadow:0 4px 14px var(--shadow);background:var(--paper)}
+button.player{font-family:var(--font-body);color:var(--ink);text-align:left;cursor:pointer;transition:transform .15s, border-color .15s}
+button.player:hover{border-color:var(--rose);transform:translateY(-1px)}
+button.player:focus-visible{outline:3px solid var(--heading);outline-offset:3px}
+.player .vinyl{animation-play-state:paused}
+.player.playing .vinyl{animation-play-state:running}
+.pp{flex:none;width:32px;height:32px;border-radius:50%;background:var(--cherry);color:var(--on-accent);display:grid;place-items:center;box-shadow:0 2px 0 var(--cherry-deep)}
+.pp svg{width:12px;height:12px;display:block}
+.player:not(.playing) .pp{animation:nudge 1.8s ease-in-out infinite}
+@keyframes nudge{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
+.top{position:relative}
+.sp{position:absolute;left:0;top:0;width:300px;height:80px;opacity:0;pointer-events:none;overflow:hidden}
+.sp.show{position:static;opacity:1;pointer-events:auto;flex-basis:100%;width:auto;height:auto;display:flex;justify-content:center;overflow:visible}
+.sp.show iframe{width:min(100%, 360px) !important;border-radius:14px}
 
 /* look switch */
 .look{display:inline-flex;padding:4px;gap:4px;background:var(--paper);border:2px solid var(--dot);border-radius:999px;box-shadow:0 4px 14px var(--shadow)}
@@ -311,7 +323,7 @@ main{
 }
 @media (prefers-reduced-motion: reduce){
   .float{animation:none;bottom:var(--b)}
-  .vinyl,.bars i,.card.pop{animation:none}
+  .vinyl,.bars i,.card.pop,.pp{animation:none}
   .no.loose{transition:none}
   .btn,.chip,body,.card{transition:none}
 }
@@ -323,7 +335,16 @@ main{
 
 <main>
   <div class="top">
-    <iframe class="spotify" title="Video Games di Lana Del Rey su Spotify" src="https://open.spotify.com/embed/track/7FDHI71Z3IInsEKuUn7Df8?utm_source=generator&amp;theme=0" height="80" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="eager"></iframe>
+    <button class="player" id="player" type="button" aria-pressed="false" aria-label="Metti Video Games di Lana Del Rey">
+      <span class="vinyl" aria-hidden="true"></span>
+      <span class="now">
+        <span class="now-label" id="now-label">tocca per la musica</span>
+        <span class="now-track">Video Games</span>
+        <span class="now-artist">Lana Del Rey</span>
+      </span>
+      <span class="pp" aria-hidden="true"></span>
+    </button>
+    <div class="sp" id="sp"><div id="sp-embed"></div></div>
     <div class="look" role="group" aria-label="Scegli lo stile">
       <button type="button" class="look-btn" data-look="dark" aria-pressed="false"><i aria-hidden="true"></i>dark coquette</button>
       <button type="button" class="look-btn" data-look="white" aria-pressed="false"><i aria-hidden="true"></i>white coquette</button>
@@ -671,7 +692,45 @@ main{
   });
 
   $('#back').addEventListener('click', () => show('s-pick'));
+
+  /* music: the vinyl button drives a Spotify embed; if the browser refuses, the real player shows up */
+  const TRACK = '7FDHI71Z3IInsEKuUn7Df8';
+  const player = $('#player'), nowLabel = $('#now-label'), sp = $('#sp'), pp = player.querySelector('.pp');
+  const PLAY = '<svg viewBox="0 0 12 12"><path fill="currentColor" d="M3.2 1.4v9.2l7.6-4.6z"/></svg>';
+  const PAUSE = '<svg viewBox="0 0 12 12"><path fill="currentColor" d="M2.4 1.5h2.7v9H2.4zM6.9 1.5h2.7v9H6.9z"/></svg>';
+  let ctrl = null, playing = false, waitTimer = null;
+  const setPlaying = on => {
+    playing = on;
+    player.classList.toggle('playing', on);
+    player.setAttribute('aria-pressed', String(on));
+    pp.innerHTML = on ? PAUSE : PLAY;
+    if (!sp.classList.contains('show')) nowLabel.textContent = on ? 'in riproduzione' : 'tocca per la musica';
+    if (on) clearTimeout(waitTimer);
+  };
+  setPlaying(false);
+  const showFallback = () => {
+    if (!sp.querySelector('iframe')) {
+      sp.innerHTML = '<iframe src="https://open.spotify.com/embed/track/' + TRACK + '?utm_source=generator" height="80" style="border:0;width:100%" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" title="Video Games di Lana Del Rey su Spotify"></iframe>';
+    }
+    sp.classList.add('show');
+    nowLabel.textContent = 'premi play qui sotto';
+  };
+  window.onSpotifyIframeApiReady = api => {
+    api.createController($('#sp-embed'), { uri: 'spotify:track:' + TRACK, width: '100%', height: 80 }, c => {
+      ctrl = c;
+      c.addListener('playback_update', e => { if (e && e.data) setPlaying(!e.data.isPaused); });
+    });
+  };
+  player.addEventListener('click', () => {
+    if (!ctrl) { showFallback(); return; }
+    ctrl.togglePlay();
+    if (!playing) {
+      clearTimeout(waitTimer);
+      waitTimer = setTimeout(() => { if (!playing) showFallback(); }, 3000);
+    }
+  });
 })();
 </script>
+<script src="https://open.spotify.com/embed/iframe-api/v1" async></script>
 </body>
 </html>
