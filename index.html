@@ -129,6 +129,8 @@ main{
 .bars i:nth-child(3){animation-delay:-.6s}
 @keyframes eq{to{height:100%}}
 
+.spotify{display:block;width:min(100%, 360px);height:80px;border:0;border-radius:14px;box-shadow:0 4px 14px var(--shadow);background:var(--paper)}
+
 /* look switch */
 .look{display:inline-flex;padding:4px;gap:4px;background:var(--paper);border:2px solid var(--dot);border-radius:999px;box-shadow:0 4px 14px var(--shadow)}
 .look-btn{
@@ -321,15 +323,7 @@ main{
 
 <main>
   <div class="top">
-    <div class="player" aria-live="polite">
-      <span class="vinyl" aria-hidden="true"></span>
-      <span class="now">
-        <span class="now-label">in riproduzione</span>
-        <span class="now-track" id="track">Video Games</span>
-        <span class="now-artist">Lana Del Rey</span>
-      </span>
-      <span class="bars" aria-hidden="true"><i></i><i></i><i></i></span>
-    </div>
+    <iframe class="spotify" title="Video Games di Lana Del Rey su Spotify" src="https://open.spotify.com/embed/track/7FDHI71Z3IInsEKuUn7Df8?utm_source=generator&amp;theme=0" height="80" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="eager"></iframe>
     <div class="look" role="group" aria-label="Scegli lo stile">
       <button type="button" class="look-btn" data-look="dark" aria-pressed="false"><i aria-hidden="true"></i>dark coquette</button>
       <button type="button" class="look-btn" data-look="white" aria-pressed="false"><i aria-hidden="true"></i>white coquette</button>
@@ -483,7 +477,6 @@ main{
   const tracks = { 's-ask': 'Video Games', 's-pick': 'Blue Jeans', 's-done': 'Happiness Is a Butterfly' };
   function show(id) {
     document.querySelectorAll('.screen').forEach(s => { s.hidden = s.id !== id; });
-    $('#track').textContent = tracks[id];
     const card = $('#card');
     card.classList.remove('pop'); void card.offsetWidth; card.classList.add('pop');
     window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' });
@@ -645,6 +638,7 @@ main{
   const TOPIC = 'appuntamento-3kvi2ntd7h8r';
   const status = $('#status'), retry = $('#retry');
   let lastMsg = '';
+  const doneText = () => 'Vediamo se mi sono guadagnato quello che hai detto. Ci vediamo ' + state.day + ' alle ' + state.time + '.';
   async function send(msg) {
     status.textContent = 'Invio in corso…';
     retry.hidden = true;
@@ -652,11 +646,11 @@ main{
     try {
       const res = await fetch(url, { method: 'POST', body: msg });
       if (!res.ok) throw new Error('HTTP ' + res.status);
-      status.textContent = 'Risposta inviata. Puoi chiudere tutto, ci vediamo.';
+      status.textContent = doneText();
     } catch (err) {
       try {
         await fetch(url, { method: 'POST', body: msg, mode: 'no-cors' });
-        status.textContent = 'Risposta inviata. Puoi chiudere tutto, ci vediamo.';
+        status.textContent = doneText();
       } catch (err2) {
         status.textContent = 'Non è partita, controlla la connessione e riprova.';
         retry.hidden = false;
